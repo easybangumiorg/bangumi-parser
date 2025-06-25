@@ -166,6 +166,7 @@ class BangumiParser:
     def extract_season_info(self, path: str) -> Optional[int]:
         """
         Extract season number from file path or filename.
+        Enhanced to support Chinese numerals and various season formats.
         
         Args:
             path: The full file path to analyze
@@ -173,12 +174,37 @@ class BangumiParser:
         Returns:
             Season number if found, None otherwise
         """
+        # Chinese numeral mapping
+        chinese_nums = {
+            '一': 1, '二': 2, '三': 3, '四': 4, '五': 5,
+            '六': 6, '七': 7, '八': 8, '九': 9, '十': 10
+        }
+        
+        # Enhanced season patterns including Chinese numerals
+        enhanced_season_patterns = [
+            r'S(\d{1,2})',                          # S01, S1, S2
+            r'Season\s*(\d{1,2})',                  # Season 01, Season 1
+            r'第(\d{1,2})[季期部]',                  # 第1季, 第1期, 第1部
+            r'(\d{1,2})[季期部]',                   # 1季, 1期, 1部
+            r'第([一二三四五六七八九十]+)[季期部]',      # 第一季, 第二期, 第三部
+            r'([一二三四五六七八九十]+)[季期部]',       # 一季, 二期, 三部
+        ]
+        
         # Check both the full path and just the filename
         for text in [path, os.path.basename(path)]:
-            for pattern in self.config.season_patterns:
+            for pattern in enhanced_season_patterns:
                 match = re.search(pattern, text, re.IGNORECASE)
                 if match:
-                    return int(match.group(1))
+                    season_str = match.group(1)
+                    
+                    # Handle Chinese numerals
+                    if season_str in chinese_nums:
+                        return chinese_nums[season_str]
+                    
+                    # Handle regular numbers
+                    if season_str.isdigit():
+                        return int(season_str)
+        
         return None
     
     def extract_parameters_from_brackets(self, filename: str) -> List[str]:
@@ -236,6 +262,7 @@ class BangumiParser:
     def extract_series_name_from_path(self, file_path: str, base_name: str, parameters: List[str]) -> str:
         """
         Extract series name from file path with improved logic.
+        Includes secondary parsing to remove irrelevant information like fansub groups, quality info, etc.
         
         Args:
             file_path: Full file path
@@ -269,6 +296,10 @@ class BangumiParser:
                 series_name = part
                 break
         
+        # Apply secondary parsing to extract clean anime title
+        if series_name:
+            series_name = self._extract_clean_anime_title(series_name)
+        
         # If no good directory name found, extract from filename
         if not series_name:
             # Remove extension and episode number pattern
@@ -294,9 +325,158 @@ class BangumiParser:
             clean_name = re.sub(r'[-_\s]+', ' ', clean_name).strip()
             
             if clean_name:
-                series_name = clean_name
+                series_name = self._extract_clean_anime_title(clean_name)
         
         return series_name or "Unknown Series"
+    
+    def _extract_clean_anime_title(self, raw_title: str) -> str:
+        """
+        Extract clean anime title from raw folder/file name by removing 
+        fansub groups, quality information, and other irrelevant details.
+        
+        IMPORTANT: This method now preserves season information to ensure proper season separation.
+        IMPORTANT: Only half-width brackets [] are treated as technical info. Full-width brackets 【】
+        are preserved as they are often part of the anime title itself.
+        
+        Examples:
+        "[北宇治字幕组&LoliHouse] 坂本日常  SAKAMOTO DAYS [01-12][WebRip 1080p HEVC-10bit AACx2][简繁日内封字幕]"
+        -> "坂本日常 SAKAMOTO DAYS"
+        
+        "【我推的孩子】 第一季" -> "【我推的孩子】 第一季"  # Full-width brackets preserved
+        "关于我转生变成史莱姆这档事 第三季" -> "关于我转生变成史莱姆这档事 第三季"
+        
+        Args:
+            raw_title: Raw title string from folder or filename
+            
+        Returns:
+            Cleaned anime title with season info preserved
+        """
+        if not raw_title:
+            return ""
+        
+        title = raw_title.strip()
+        
+        # Extract and preserve season information before cleaning
+        season_info = self._extract_season_from_title(title)
+        
+        # Define known fansub groups and technical terms for better matching
+        known_groups = self.config.known_release_groups
+        technical_terms = self.config.common_tags
+        
+        # Check if this is a multi-bracket format
+        bracket_contents = re.findall(r'\[([^\]]+)\]', title)
+        
+        if len(bracket_contents) >= 4:  # Multi-bracket format like [GM-Team][国漫][时光代理人][Shiguang Dailiren][2021]
+            title_parts = []
+            
+            for content in bracket_contents:
+                # Skip if it's a known group, technical term, year, or episode range
+                if (any(group.lower() in content.lower() for group in known_groups) or
+                    any(term.lower() in content.lower() for term in technical_terms) or
+                    re.match(r'^\d{4}$', content) or  # Year like 2021
+                    re.match(r'^\d{1,2}-\d{1,2}', content) or  # Episode range like 01-11
+                    content.lower() in ['fin', 'gb', '1080p']):
+                    continue
+                
+                # Keep if it looks like a title part
+                if len(content) > 2 and not content.isdigit():
+                    title_parts.append(content)
+            
+            if title_parts:
+                clean_title = ' '.join(title_parts)
+                # Add back season info if found
+                return f"{clean_title} {season_info}" if season_info else clean_title
+        
+        # Standard format processing: [Group] Title [Episode-Range][Quality][Other]
+        
+        # Step 1: Remove leading brackets (ONLY half-width square brackets)
+        # Full-width brackets 【】 are preserved as they are part of anime titles
+        leading_match = re.match(r'^\[([^\]]+)\]\s*', title)
+        if leading_match:
+            group_content = leading_match.group(1)
+            # Check if it looks like a fansub group
+            if (any(group.lower() in group_content.lower() for group in known_groups) or
+                '&' in group_content or '字幕组' in group_content):
+                title = title[leading_match.end():]
+        
+        # Step 2: Remove episode ranges like [01-12]
+        title = re.sub(r'\s*\[\d{1,2}-\d{1,2}\]', '', title)
+        
+        # Step 3: Remove quality brackets from the end working backwards
+        # This handles multiple quality brackets like [WebRip 1080p HEVC-10bit AACx2][简繁日内封字幕]
+        while True:
+            # Look for brackets at the end that contain technical terms
+            end_bracket_match = re.search(r'\[([^\]]+)\]\s*$', title)
+            if not end_bracket_match:
+                break
+                
+            bracket_content = end_bracket_match.group(1)
+            # Check if this bracket contains technical terms
+            words = re.split(r'[\s\-_]+', bracket_content)
+            contains_tech_terms = any(any(term.lower() in word.lower() for term in technical_terms) 
+                                    for word in words if word)
+            
+            if contains_tech_terms:
+                # Remove this bracket
+                title = title[:end_bracket_match.start()].strip()
+            else:
+                break
+        
+        # Clean up spaces and dashes
+        title = re.sub(r'[-_\s]+', ' ', title).strip()
+        
+        # DON'T remove season indicators - we want to preserve them for proper grouping
+        # The old code that removed season patterns is commented out:
+        # season_patterns = [
+        #     r'\s+第[一二三四五六七八九十\d]+[季期部]$',
+        #     r'\s+Season\s*\d+$',
+        #     r'\s+S\d+$',
+        # ]
+        
+        # Final cleanup
+        title = re.sub(r'\s+', ' ', title).strip()
+        
+        return title if title else raw_title
+    
+    def _extract_season_from_title(self, title: str) -> str:
+        """
+        Extract season information from title for preservation.
+        
+        Args:
+            title: Title string to extract season info from
+            
+        Returns:
+            Season string if found, empty string otherwise
+        """
+        # Chinese season patterns
+        chinese_season_patterns = [
+            r'第([一二三四五六七八九十]+)[季期部]',  # 第一季, 第二期, 第三部
+            r'第(\d+)[季期部]',                    # 第1季, 第2期, 第3部
+            r'([一二三四五六七八九十]+)[季期部]',    # 一季, 二期, 三部 (without 第)
+            r'(\d+)[季期部]',                     # 1季, 2期, 3部 (without 第)
+        ]
+        
+        # English season patterns
+        english_season_patterns = [
+            r'Season\s*(\d+)',  # Season 1, Season 2
+            r'S(\d+)',          # S1, S2
+        ]
+        
+        # Try Chinese patterns first
+        for pattern in chinese_season_patterns:
+            match = re.search(pattern, title, re.IGNORECASE)
+            if match:
+                season_part = match.group(0)
+                return season_part
+        
+        # Try English patterns
+        for pattern in english_season_patterns:
+            match = re.search(pattern, title, re.IGNORECASE)
+            if match:
+                season_part = match.group(0)
+                return season_part
+        
+        return ""
     
     def group_series(self) -> Dict[str, List[Tuple[int, str]]]:
         """
@@ -423,7 +603,7 @@ class BangumiParser:
         1. More episodes takes priority
         2. Specific episode numbers take priority over default "00"
         3. Merge episodes from smaller collections into larger ones
-        4. Rename episode "00" to "未知集01" when merging
+        4. Rename episode "00" to "NC01" when merging
         
         Args:
             series_info: Dictionary of series information
@@ -465,12 +645,12 @@ class BangumiParser:
                     # Merge episodes
                     for ep_num, file_path in info.episodes.items():
                         if ep_num == "00":
-                            # Rename "00" episode to "未知集01" or next available number
-                            new_ep_num = "未知集01"
+                            # Rename "00" episode to "NC01" or next available number
+                            new_ep_num = "NC01"
                             counter = 1
                             while new_ep_num in main_info.episodes:
                                 counter += 1
-                                new_ep_num = f"未知集{counter:02d}"
+                                new_ep_num = f"NC{counter:02d}"
                             main_info.episodes[new_ep_num] = file_path
                         else:
                             # Add episode if not already exists
@@ -495,25 +675,59 @@ class BangumiParser:
     def merge_multi_season_series(self, series_info: Dict[str, SeriesInfo]) -> Dict[str, BangumiInfo]:
         """
         Merge series with the same name but different seasons into BangumiInfo objects.
+        Enhanced to extract base series name from season-specific names.
         
         Args:
             series_info: Dictionary of series information
             
         Returns:
-            Dictionary of BangumiInfo objects indexed by series name
+            Dictionary of BangumiInfo objects indexed by base series name
         """
         bangumi_dict = {}
         
         for pattern, info in series_info.items():
             series_name = info.series_name
             
-            if series_name not in bangumi_dict:
-                bangumi_dict[series_name] = BangumiInfo()
-                bangumi_dict[series_name].series_name = series_name
+            # Extract base series name by removing season indicators
+            base_series_name = self._extract_base_series_name(series_name)
             
-            bangumi_dict[series_name].add_season(info)
+            if base_series_name not in bangumi_dict:
+                bangumi_dict[base_series_name] = BangumiInfo()
+                bangumi_dict[base_series_name].series_name = base_series_name
+            
+            bangumi_dict[base_series_name].add_season(info)
         
         return bangumi_dict
+    
+    def _extract_base_series_name(self, series_name: str) -> str:
+        """
+        Extract base series name by removing season indicators.
+        
+        Examples:
+        "我推的孩子 第一季" -> "我推的孩子"
+        "Attack on Titan Season 4" -> "Attack on Titan"
+        "关于我转生变成史莱姆这档事 第三季" -> "关于我转生变成史莱姆这档事"
+        
+        Args:
+            series_name: Series name that may contain season info
+            
+        Returns:
+            Base series name without season indicators
+        """
+        base_name = series_name
+        
+        # Season patterns to remove
+        season_removal_patterns = [
+            r'\s+第[一二三四五六七八九十\d]+[季期部]$',  # 第一季, 第2期, 第三部
+            r'\s+Season\s*\d+$',                      # Season 1, Season 4
+            r'\s+S\d+$',                             # S1, S4
+            r'\s+[一二三四五六七八九十\d]+[季期部]$',   # 一季, 2期, 三部 (without 第)
+        ]
+        
+        for pattern in season_removal_patterns:
+            base_name = re.sub(pattern, '', base_name, flags=re.IGNORECASE)
+        
+        return base_name.strip()
     
     def parse_and_merge(self, directory: str) -> Dict[str, BangumiInfo]:
         """
