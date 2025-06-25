@@ -25,6 +25,11 @@ class BangumiConfig:
 
     def _load_default_config(self):
         """Load default configuration."""
+        self.chinese_nums = {
+            '一': 1, '二': 2, '三': 3, '四': 4, '五': 5,
+            '六': 6, '七': 7, '八': 8, '九': 9, '十': 10
+        }
+        
         self.video_extensions = ['.mp4', '.mkv',
                                  '.avi', '.mov', '.wmv', '.flv', '.webm']
 
@@ -65,18 +70,27 @@ class BangumiConfig:
             r'_(\d{1,2})_',                # Series_01_
             r'\s(\d{1,2})\s',              # Series 01 (with spaces)
             r'(?:第|Episode|Ep)(\d{1,2})',  # 第01, Episode01, Ep01
-            r'】(\d{1,2})$',               # 【SeriesName】01 (directly connected to full-width brackets)
-            r'(\d{1,2})$',                 # SeriesName01 (directly connected at end)
+            # 【SeriesName】01 (directly connected to full-width brackets)
+            r'】(\d{1,2})$',
+            # SeriesName01 (directly connected at end)
+            r'(\d{1,2})$',
         ]
 
         # Season patterns for extracting season information
         self.season_patterns = [
-            r'S(\d{1,2})',                          # S01, S1
+            r'S(\d{1,2})',                          # S01, S1, S2
             r'Season\s*(\d{1,2})',                  # Season 01, Season 1
             r'第(\d{1,2})[季期部]',                  # 第1季, 第1期, 第1部
             r'(\d{1,2})[季期部]',                   # 1季, 1期, 1部
             r'第([一二三四五六七八九十]+)[季期部]',      # 第一季, 第二期, 第三部
             r'([一二三四五六七八九十]+)[季期部]',       # 一季, 二期, 三部
+        ]
+        
+        self.season_removal_patterns = [
+            r'\s+第[一二三四五六七八九十\d]+[季期部]$',  # 第一季, 第2期, 第三部
+            r'\s+Season\s*\d+$',                      # Season 1, Season 4
+            r'\s+S\d+$',                             # S1, S4
+            r'\s+[一二三四五六七八九十\d]+[季期部]$',   # 一季, 2期, 三部 (without 第)
         ]
 
         # Patterns to clean from series names
@@ -134,12 +148,16 @@ class BangumiConfig:
     def save_config(self, output_path: str):
         """Save current configuration to JSON file."""
         config_data = {
+            'chinese_nums': self.chinese_nums,
             'video_extensions': self.video_extensions,
             'known_release_groups': self.known_release_groups,
             'common_tags': self.common_tags,
             'bracket_patterns': self.bracket_patterns,
             'episode_patterns': self.episode_patterns,
-            'cleanup_patterns': self.cleanup_patterns
+            'season_patterns': self.season_patterns,
+            'season_removal_patterns': self.season_removal_patterns,
+            'cleanup_patterns': self.cleanup_patterns,
+            'ignore_directory_patterns': self.ignore_directory_patterns
         }
 
         with open(output_path, 'w', encoding='utf-8') as f:
@@ -148,10 +166,14 @@ class BangumiConfig:
     def get_config_dict(self) -> Dict[str, Any]:
         """Get configuration as dictionary."""
         return {
+            'chinese_nums': self.chinese_nums,
             'video_extensions': self.video_extensions,
             'known_release_groups': self.known_release_groups,
             'common_tags': self.common_tags,
             'bracket_patterns': self.bracket_patterns,
             'episode_patterns': self.episode_patterns,
-            'cleanup_patterns': self.cleanup_patterns
+            'season_patterns': self.season_patterns,
+            'season_removal_patterns': self.season_removal_patterns,
+            'cleanup_patterns': self.cleanup_patterns,
+            'ignore_directory_patterns': self.ignore_directory_patterns
         }

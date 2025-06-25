@@ -175,20 +175,10 @@ class BangumiParser:
             Season number if found, None otherwise
         """
         # Chinese numeral mapping
-        chinese_nums = {
-            '一': 1, '二': 2, '三': 3, '四': 4, '五': 5,
-            '六': 6, '七': 7, '八': 8, '九': 9, '十': 10
-        }
+        chinese_nums = self.config.chinese_nums
         
         # Enhanced season patterns including Chinese numerals
-        enhanced_season_patterns = [
-            r'S(\d{1,2})',                          # S01, S1, S2
-            r'Season\s*(\d{1,2})',                  # Season 01, Season 1
-            r'第(\d{1,2})[季期部]',                  # 第1季, 第1期, 第1部
-            r'(\d{1,2})[季期部]',                   # 1季, 1期, 1部
-            r'第([一二三四五六七八九十]+)[季期部]',      # 第一季, 第二期, 第三部
-            r'([一二三四五六七八九十]+)[季期部]',       # 一季, 二期, 三部
-        ]
+        enhanced_season_patterns = self.config.season_patterns
         
         # Check both the full path and just the filename
         for text in [path, os.path.basename(path)]:
@@ -425,14 +415,6 @@ class BangumiParser:
         # Clean up spaces and dashes
         title = re.sub(r'[-_\s]+', ' ', title).strip()
         
-        # DON'T remove season indicators - we want to preserve them for proper grouping
-        # The old code that removed season patterns is commented out:
-        # season_patterns = [
-        #     r'\s+第[一二三四五六七八九十\d]+[季期部]$',
-        #     r'\s+Season\s*\d+$',
-        #     r'\s+S\d+$',
-        # ]
-        
         # Final cleanup
         title = re.sub(r'\s+', ' ', title).strip()
         
@@ -448,29 +430,10 @@ class BangumiParser:
         Returns:
             Season string if found, empty string otherwise
         """
-        # Chinese season patterns
-        chinese_season_patterns = [
-            r'第([一二三四五六七八九十]+)[季期部]',  # 第一季, 第二期, 第三部
-            r'第(\d+)[季期部]',                    # 第1季, 第2期, 第3部
-            r'([一二三四五六七八九十]+)[季期部]',    # 一季, 二期, 三部 (without 第)
-            r'(\d+)[季期部]',                     # 1季, 2期, 3部 (without 第)
-        ]
-        
-        # English season patterns
-        english_season_patterns = [
-            r'Season\s*(\d+)',  # Season 1, Season 2
-            r'S(\d+)',          # S1, S2
-        ]
-        
-        # Try Chinese patterns first
-        for pattern in chinese_season_patterns:
-            match = re.search(pattern, title, re.IGNORECASE)
-            if match:
-                season_part = match.group(0)
-                return season_part
+        season_patterns = self.config.season_patterns
         
         # Try English patterns
-        for pattern in english_season_patterns:
+        for pattern in season_patterns:
             match = re.search(pattern, title, re.IGNORECASE)
             if match:
                 season_part = match.group(0)
@@ -717,12 +680,7 @@ class BangumiParser:
         base_name = series_name
         
         # Season patterns to remove
-        season_removal_patterns = [
-            r'\s+第[一二三四五六七八九十\d]+[季期部]$',  # 第一季, 第2期, 第三部
-            r'\s+Season\s*\d+$',                      # Season 1, Season 4
-            r'\s+S\d+$',                             # S1, S4
-            r'\s+[一二三四五六七八九十\d]+[季期部]$',   # 一季, 2期, 三部 (without 第)
-        ]
+        season_removal_patterns = self.config.season_removal_patterns
         
         for pattern in season_removal_patterns:
             base_name = re.sub(pattern, '', base_name, flags=re.IGNORECASE)
