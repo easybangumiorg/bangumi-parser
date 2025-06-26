@@ -27,7 +27,7 @@ jobs:
       run: uv sync --dev
     
     - name: Run tests
-      run: uv run pytest tests/ -v --cov=src/bangumi_parser --cov-report=xml
+      run: uv run pytest
     
     - name: Build package
       run: uv build
