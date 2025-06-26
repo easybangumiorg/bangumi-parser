@@ -635,6 +635,8 @@ class BangumiParser:
         Returns:
             Dictionary of merged series information
         """
+        prefix = self.config.unknown_prefix
+
         # Group by (series_name, dir_name, season)
         groups = defaultdict(list)
 
@@ -672,11 +674,11 @@ class BangumiParser:
                     for ep_num, file_path in info.episodes.items():
                         if ep_num == "00":
                             # Rename "00" episode to "NC01" or next available number
-                            new_ep_num = "NC01"
+                            new_ep_num = f"{prefix}01"
                             counter = 1
                             while new_ep_num in main_info.episodes:
                                 counter += 1
-                                new_ep_num = f"NC{counter:02d}"
+                                new_ep_num = f"{prefix}{counter:02d}"
                             main_info.episodes[new_ep_num] = file_path
                         else:
                             # Add episode if not already exists

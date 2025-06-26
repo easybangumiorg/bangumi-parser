@@ -120,6 +120,8 @@ class BangumiConfig:
             r'^第\d+[季期]$',    # 精确命名为 "第1季"、"第1期" 等的目录
             r'^\d+[季期]$',      # 精确命名为 "1季"、"1期" 等的目录
         ]
+        
+        self.unknown_prefix = "NC"  # 未知集数的前缀，用于标识未解析的集数
 
     def _load_custom_config(self, config_path: str):
         """从JSON文件加载自定义配置。"""
