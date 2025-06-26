@@ -25,6 +25,10 @@ jobs:
     
     - name: Install dependencies
       run: uv sync --dev
+
+    # https://github.com/astral-sh/uv/issues/11454#issuecomment-2806823952
+    - name: Fix pytest installation
+      run: uv remove --dev pytest && uv add --dev pytest
     
     - name: Run tests
       run: uv run pytest
