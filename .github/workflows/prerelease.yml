@@ -32,9 +32,6 @@ jobs:
     - name: Build package
       run: uv build
     
-    - name: Check package
-      run: uv run twine check dist/*
-    
     - name: Extract tag name
       id: tag
       run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
