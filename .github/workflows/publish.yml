@@ -2,23 +2,12 @@ name: Publish to PyPI
 
 on:
   release:
-    types: [published, released, edited]
+    types: [published]
 
 jobs:
   publish:
     runs-on: ubuntu-latest
-    if: >
-      (github.event.release.prerelease == false)
-      && (
-        github.event.action == 'published'
-        || github.event.action == 'released'
-        || (
-          github.event.action == 'edited'
-          && github.event.changes.prerelease
-          && github.event.changes.prerelease.from == true
-          && github.event.release.prerelease == false
-        )
-      )
+
     steps:
       - uses: actions/checkout@v4
 
