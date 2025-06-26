@@ -1,34 +1,38 @@
-name: Publish Python Package
+name: Publish to PyPI
 
 on:
   release:
     types: [published]
-  workflow_dispatch:
 
 jobs:
-  build:
+  publish:
     runs-on: ubuntu-latest
+    if: github.event.release.prerelease == false
     steps:
     - uses: actions/checkout@v4
     
-    - name: Set up Python
-      uses: actions/setup-python@v4
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
       with:
-        python-version: '3.10'
+        version: "latest"
     
-    - name: Install build dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install build twine
+    - name: Set up Python
+      run: uv python install 3.12
+    
+    - name: Install dependencies
+      run: uv sync --dev
+    
+    - name: Run tests
+      run: uv run pytest tests/ -v
     
     - name: Build package
-      run: python -m build
+      run: uv build
     
     - name: Check package
-      run: python -m twine check dist/*
+      run: uv run twine check dist/*
     
     - name: Upload to PyPI
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-      run: python -m twine upload dist/*
+      run: uv run twine upload dist/*

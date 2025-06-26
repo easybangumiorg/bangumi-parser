@@ -1,0 +1,73 @@
+name: Create Pre-release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  test-and-prerelease:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+    
+    - name: Set up Python
+      run: uv python install 3.12
+    
+    - name: Install dependencies
+      run: uv sync --dev
+    
+    - name: Run tests
+      run: uv run pytest tests/ -v --cov=src/bangumi_parser --cov-report=xml
+    
+    - name: Build package
+      run: uv build
+    
+    - name: Check package
+      run: uv run twine check dist/*
+    
+    - name: Extract tag name
+      id: tag
+      run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+    
+    - name: Generate release notes
+      id: release_notes
+      run: |
+        cat > release_notes.md << 'EOF'
+        ## 🚀 Release ${{ steps.tag.outputs.tag }}
+        
+        这是一个预发布版本，包含以下更改：
+        
+        ### ✅ 自动化测试通过
+        - 所有单元测试已通过
+        - 代码覆盖率报告已生成
+        - 包构建和检查已完成
+        
+        ### 📦 构建信息
+        - Python版本: 3.12
+        - 构建工具: uv
+        - 构建时间: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+        
+        请仔细测试此预发布版本。如果一切正常，可以将其标记为正式发布。
+        EOF
+    
+    - name: Create Pre-release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.tag.outputs.tag }}
+        name: 'Pre-release ${{ steps.tag.outputs.tag }}'
+        body_path: release_notes.md
+        draft: false
+        prerelease: true
+        files: |
+          dist/*
+        token: ${{ secrets.GITHUB_TOKEN }}

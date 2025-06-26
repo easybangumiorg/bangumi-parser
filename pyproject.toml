@@ -44,6 +44,7 @@ dev = [
     "black>=23.0",
     "flake8>=6.0",
     "mypy>=1.0",
+    "twine>=4.0",
 ]
 test = [
     "pytest>=7.0",
