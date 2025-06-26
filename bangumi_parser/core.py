@@ -13,7 +13,11 @@ from .config import BangumiConfig
 
 
 class SeriesInfo:
-    """Data class to hold series information."""
+    """
+    Data class to hold series information.
+    
+    基础数据类，存储仿文件列表和相关元数据。
+    """
 
     def __init__(self):
         self.dir_name: str = ""
@@ -43,7 +47,11 @@ class SeriesInfo:
 
 
 class BangumiInfo:
-    """Data class to hold complete bangumi information with multiple seasons."""
+    """
+    Data class to hold complete bangumi information with multiple seasons.
+    
+    核心数据类，用于存储完整的季度信息和列表信息。
+    """
 
     def __init__(self):
         self.series_name: str = ""
