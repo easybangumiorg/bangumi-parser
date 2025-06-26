@@ -22,6 +22,8 @@ class BangumiConfig:
         self._load_default_config()
         if config_path and os.path.exists(config_path):
             self._load_custom_config(config_path)
+        if config_path and not os.path.exists(config_path):
+            raise FileNotFoundError(f"Can`t find Custom config file: {config_path}")
 
     def _load_default_config(self):
         """加载默认配置。"""

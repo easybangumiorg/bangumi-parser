@@ -3,7 +3,6 @@ Command line interface for Bangumi Parser.
 """
 
 import argparse
-import json
 import os
 import sys
 from bangumi_parser import BangumiParser, BangumiConfig

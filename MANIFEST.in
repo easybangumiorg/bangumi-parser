@@ -1,0 +1,10 @@
+include README.md
+include LICENSE
+include pyproject.toml
+include config_example.json
+recursive-include src/bangumi_parser *.py
+recursive-include tests *.py
+global-exclude *.pyc
+global-exclude */__pycache__/*
+global-exclude .git/*
+global-exclude .github/*

@@ -5,7 +5,6 @@ Handles video file discovery, series grouping, and metadata extraction.
 
 import os
 import re
-import pathlib
 from collections import defaultdict
 from typing import Dict, List, Tuple, Optional, Any
 
