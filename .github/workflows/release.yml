@@ -1,4 +1,4 @@
-name: Create Pre-release
+name: Create Pre-release And Publish to PyPI
 
 on:
   push:
@@ -68,3 +68,31 @@ jobs:
           files: |
             dist/*
           token: ${{ secrets.GITHUB_TOKEN }}
+          
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --dev && uv sync --extra dev --extra test
+
+      - name: Build package
+        run: uv build
+
+      - name: Upload to PyPI
+        env:
+          UV_PUBLISH_USERNAME: __token__
+          UV_PUBLISH_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: uv publish
