@@ -27,6 +27,22 @@
 
 ## 快速开始
 
+### 命令行工具
+
+```bash
+# 基本使用
+python -m bangumi_parser.cli /path/to/anime/directory
+
+# 使用合并模式并显示统计信息
+python -m bangumi_parser.cli /path/to/anime/directory --merge --stats
+
+# 导出到JSON文件，启用详细输出
+python -m bangumi_parser.cli /path/to/anime/directory --output results.json --verbose
+
+# 使用自定义配置文件导出到CSV
+python -m bangumi_parser.cli /path/to/anime/directory --config config.json --output results.csv --format csv
+```
+
 ### 基本使用
 
 ```python

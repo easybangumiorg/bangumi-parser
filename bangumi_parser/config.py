@@ -1,6 +1,6 @@
 """
-Configuration module for Bangumi Parser.
-Allows users to customize parsing behavior and add/modify metadata.
+Bangumi Parser 配置模块。
+允许用户自定义解析行为并添加/修改元数据。
 """
 
 import json
@@ -9,14 +9,14 @@ from typing import Dict, List, Optional, Any
 
 
 class BangumiConfig:
-    """Configuration class for Bangumi Parser."""
+    """Bangumi Parser 配置类。"""
 
     def __init__(self, config_path: Optional[str] = None):
         """
-        Initialize configuration.
+        初始化配置。
 
         Args:
-            config_path: Path to custom configuration file
+            config_path: 自定义配置文件路径
         """
         self.config_path = config_path
         self._load_default_config()
@@ -24,59 +24,67 @@ class BangumiConfig:
             self._load_custom_config(config_path)
 
     def _load_default_config(self):
-        """Load default configuration."""
+        """加载默认配置。"""
+        # 中文数字映射表 - 用于将中文数字转换为阿拉伯数字，支持第一季、第二季等季度解析
         self.chinese_nums = {
             '一': 1, '二': 2, '三': 3, '四': 4, '五': 5,
             '六': 6, '七': 7, '八': 8, '九': 9, '十': 10
         }
-        
-        self.video_extensions = ['.mp4', '.mkv',
-                                 '.avi', '.mov', '.wmv', '.flv', '.webm']
 
+        # 支持的视频文件扩展名 - 定义哪些文件类型被识别为视频文件进行解析
+        self.video_extensions = [
+            '.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm'
+        ]
+
+        # 已知的发布组名称 - 用于识别和提取文件名中的制作组信息，帮助分类和过滤
         self.known_release_groups = [
             'NC-Raws', 'GM-Team', 'KTXP', 'Crimson',
             'SweetSub', 'Sakurato', 'Nekomoe kissaten',
             'ANi', 'Philosophy-Raws', 'LoliHouse', 'MCE',
             'VCB-Studio', '北宇治字幕组', 'Leopard-Raws',
-            'Lilith-Raws'
+            'Lilith-Raws', "桜都字幕组", "喵萌奶茶屋", "天香字幕社",
+            "猪猪字幕组", "幻樱字幕组", "悠哈璃羽字幕社", "动漫国字幕组"
         ]
 
+        # 常见标签 - 识别文件名中的质量、格式、语言等标识符，用于元数据提取
         self.common_tags = [
             'BDRip', 'ENG', '简繁', 'x265', 'x265_flac', 'WebRip',
             'FLAC', '繁体', '国漫', 'GB', '1080p', '480p', 'HEVC',
             '720p', '招募', 'CHT', 'AC3', 'CHS', '8bit', 'Ma10p',
             'ASSx2', 'SRTx2', 'Fin', 'BIG5', '10bit', '字幕', 'AAC',
             '外挂', '翻译', '内封', 'JP', 'DTS', '简体', 'x264', 'AVC',
-            '4K'
+            '4K', "BD", "TV", "WEB", "HDR", "杜比全景声"
         ]
 
+        # 括号匹配模式 - 用于提取括号内的信息，如发布组名、标签等
         self.bracket_patterns = [
-            r'\[(.*?)\]',    # Square brackets
-            r'\((.*?)\)',    # Round brackets
-            r'【(.*?)】',    # Full-width square brackets
-            r'『(.*?)』',    # Full-width curly brackets
-            r'\{(.*?)\}'     # Curly brackets
+            r'\[(.*?)\]',    # 方括号
+            r'\((.*?)\)',    # 圆括号
+            r'【(.*?)】',    # 全角方括号
+            r'『(.*?)』',    # 全角大括号
+            r'\{(.*?)\}'     # 大括号
         ]
 
+        # 集数识别模式 - 从文件名中提取集数信息的正则表达式，支持多种命名格式
         self.episode_patterns = [
-            r'[ \-_\[](\d{1,2})[ \-_\]]',  # Default pattern: - 01, [01], _01_
+            r'[ \-_\[](\d{1,2})[ \-_\]]',  # 默认模式: - 01, [01], _01_
             r'[Ee][Pp]?(\d{1,2})',         # EP01, E01, ep01
             r'第(\d{1,2})[话話集]',          # 第01话, 第01集
             r'(\d{1,2})[话話集]',           # 01话, 01集
-            # Series Name - 01.mkv
+            # 系列名称 - 01.mkv
             r'- (\d{1,2})\.(?:mkv|mp4|avi|mov|wmv|flv|webm)',
             r'S\d+E(\d{1,2})',             # S01E01, S1E1
             r'\.(\d{1,2})\.(?:mkv|mp4|avi|mov|wmv|flv|webm)',  # Series.01.mkv
             r'_(\d{1,2})_',                # Series_01_
-            r'\s(\d{1,2})\s',              # Series 01 (with spaces)
+            r'\s(\d{1,2})\s',              # Series 01 (带空格)
             r'(?:第|Episode|Ep)(\d{1,2})',  # 第01, Episode01, Ep01
-            # 【SeriesName】01 (directly connected to full-width brackets)
+            # 【SeriesName】01 (直接连接全角括号)
             r'】(\d{1,2})$',
-            # SeriesName01 (directly connected at end)
+            # SeriesName01 (直接连接在末尾)
             r'(\d{1,2})$',
         ]
 
-        # Season patterns for extracting season information
+        # 季度识别模式 - 从文件名或目录名中提取季度信息，支持中英文格式
         self.season_patterns = [
             r'S(\d{1,2})',                          # S01, S1, S2
             r'Season\s*(\d{1,2})',                  # Season 01, Season 1
@@ -85,68 +93,104 @@ class BangumiConfig:
             r'第([一二三四五六七八九十]+)[季期部]',      # 第一季, 第二期, 第三部
             r'([一二三四五六七八九十]+)[季期部]',       # 一季, 二期, 三部
         ]
-        
+
+        # 季度移除模式 - 从番剧名称中移除季度标识，获得干净的番剧标题
         self.season_removal_patterns = [
             r'\s+第[一二三四五六七八九十\d]+[季期部]$',  # 第一季, 第2期, 第三部
             r'\s+Season\s*\d+$',                      # Season 1, Season 4
             r'\s+S\d+$',                             # S1, S4
-            r'\s+[一二三四五六七八九十\d]+[季期部]$',   # 一季, 2期, 三部 (without 第)
+            r'\s+[一二三四五六七八九十\d]+[季期部]$',   # 一季, 2期, 三部 (无第)
         ]
 
-        # Patterns to clean from series names
+        # 清理模式 - 从番剧名称中移除不必要的信息，如文件扩展名、年份等
         self.cleanup_patterns = [
-            r'\.mkv|\.mp4|\.avi|\.mov|\.wmv|\.flv|\.webm',  # Extensions
-            r'\(\d{4}\)',  # Years in parentheses like (2013)
-            r'\d{4}',  # Standalone years
-            r'Season\s*\d+',  # Season markers (but not S01 format)
-            r'第\d+[季期]',   # Chinese season markers
-            r'\d+[季期]',     # Chinese season markers without 第
+            r'\.mkv|\.mp4|\.avi|\.mov|\.wmv|\.flv|\.webm',  # 扩展名
+            r'\(\d{4}\)',  # 括号中的年份，如 (2013)
+            r'\d{4}',  # 独立的年份
+            r'Season\s*\d+',  # 季度标识（但不包括 S01 格式）
+            r'第\d+[季期]',   # 中文季度标识
+            r'\d+[季期]',     # 无第的中文季度标识
         ]
 
-        # Directory patterns that should be ignored when extracting series names
+        # 忽略目录模式 - 提取番剧名称时应忽略的目录名称模式，避免将季度目录误认为番剧名
         self.ignore_directory_patterns = [
-            # Directories named exactly "Season 01", "Season 1", etc.
+            # 精确命名为 "Season 01"、"Season 1" 等的目录
             r'^Season\s*\d+$',
-            r'^S\d+$',          # Directories named exactly "S01", "S1", etc.
-            r'^第\d+[季期]$',    # Directories named exactly "第1季", "第1期", etc.
-            r'^\d+[季期]$',      # Directories named exactly "1季", "1期", etc.
+            r'^S\d+$',          # 精确命名为 "S01"、"S1" 等的目录
+            r'^第\d+[季期]$',    # 精确命名为 "第1季"、"第1期" 等的目录
+            r'^\d+[季期]$',      # 精确命名为 "1季"、"1期" 等的目录
         ]
 
     def _load_custom_config(self, config_path: str):
-        """Load custom configuration from JSON file."""
+        """从JSON文件加载自定义配置。"""
         try:
             with open(config_path, 'r', encoding='utf-8') as f:
                 custom_config = json.load(f)
 
-            # Update configuration with custom values
+            # 使用自定义值更新配置
             for key, value in custom_config.items():
                 if hasattr(self, key):
                     if isinstance(getattr(self, key), list):
-                        # For lists, extend with custom values
+                        # 对于列表，使用自定义值扩展
                         getattr(self, key).extend(value)
                     else:
-                        # For other types, replace
+                        # 对于其他类型，直接替换
                         setattr(self, key, value)
         except Exception as e:
-            print(f"Warning: Failed to load custom config: {e}")
+            print(f"警告: 加载自定义配置失败: {e}")
+
+    def set_chinese_num(self, num: str, value: int):
+        """添加新的中文数字映射。"""
+        if num not in self.chinese_nums:
+            self.chinese_nums[num] = value
+
+    def add_video_extension(self, extension: str):
+        """向配置中添加新的视频文件扩展名。"""
+        if extension not in self.video_extensions:
+            self.video_extensions.append(extension)
 
     def add_release_group(self, group_name: str):
-        """Add a new release group to the configuration."""
+        """向配置中添加新的发布组。"""
         if group_name not in self.known_release_groups:
             self.known_release_groups.append(group_name)
 
     def add_tag(self, tag: str):
-        """Add a new tag to the configuration."""
+        """向配置中添加新的标签。"""
         if tag not in self.common_tags:
             self.common_tags.append(tag)
 
+    def add_bracket_pattern(self, pattern: str):
+        """向配置中添加新的括号模式。"""
+        if pattern not in self.bracket_patterns:
+            self.bracket_patterns.append(pattern)
+
     def add_episode_pattern(self, pattern: str):
-        """Add a new episode pattern to the configuration."""
+        """向配置中添加新的集数模式。"""
         if pattern not in self.episode_patterns:
             self.episode_patterns.append(pattern)
 
+    def add_season_pattern(self, pattern: str):
+        """向配置中添加新的季度模式。"""
+        if pattern not in self.season_patterns:
+            self.season_patterns.append(pattern)
+
+    def add_season_removal_pattern(self, pattern: str):
+        """向配置中添加新的季度移除模式。"""
+        if pattern not in self.season_removal_patterns:
+            self.season_removal_patterns.append(pattern)
+
+    def add_cleanup_pattern(self, pattern: str):
+        """向配置中添加新的清理模式。"""
+        if pattern not in self.cleanup_patterns:
+            self.cleanup_patterns.append(pattern)
+
+    def add_ignore_directory_pattern(self, pattern: str):
+        """添加新的要忽略的目录模式。"""
+        if pattern not in self.ignore_directory_patterns:
+            self.ignore_directory_patterns.append(pattern)
+
     def save_config(self, output_path: str):
-        """Save current configuration to JSON file."""
+        """将当前配置保存到JSON文件。"""
         config_data = {
             'chinese_nums': self.chinese_nums,
             'video_extensions': self.video_extensions,
@@ -164,7 +208,7 @@ class BangumiConfig:
             json.dump(config_data, f, ensure_ascii=False, indent=2)
 
     def get_config_dict(self) -> Dict[str, Any]:
-        """Get configuration as dictionary."""
+        """获取配置作为字典。"""
         return {
             'chinese_nums': self.chinese_nums,
             'video_extensions': self.video_extensions,
