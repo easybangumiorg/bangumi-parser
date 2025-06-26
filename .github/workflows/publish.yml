@@ -2,7 +2,7 @@ name: Publish to PyPI
 
 on:
   release:
-    types: [published, edited]
+    types: [published, released]
 
 jobs:
   publish:
@@ -27,6 +27,6 @@ jobs:
 
       - name: Upload to PyPI
         env:
-          UV_PUBLISH_USERNAME=: __token__
-          UV_PUBLISH_PASSWORD=: ${{ secrets.PYPI_API_TOKEN }}
+          UV_PUBLISH_USERNAME: __token__
+          UV_PUBLISH_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         run: uv publish
