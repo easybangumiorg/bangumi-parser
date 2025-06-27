@@ -5,10 +5,10 @@ Utility functions for Bangumi Parser.
 import json
 import os
 from typing import Dict, Any, List, Union
-from .core import SeriesInfo, BangumiInfo
+from .core import PlayList, BangumiInfo
 
 
-def export_to_json(data: Union[Dict[str, SeriesInfo], Dict[str, BangumiInfo]], output_path: str):
+def export_to_json(data: Union[Dict[str, PlayList], Dict[str, BangumiInfo]], output_path: str):
     """
     Export series information or bangumi information to JSON file.
     
@@ -58,7 +58,7 @@ def export_bangumi_to_csv(bangumi_info: Dict[str, BangumiInfo], output_path: str
             })
 
 
-def export_to_csv(series_info: Dict[str, SeriesInfo], output_path: str):
+def export_to_csv(series_info: Dict[str, PlayList], output_path: str):
     """
     Export series information to CSV file.
     
@@ -87,7 +87,7 @@ def export_to_csv(series_info: Dict[str, SeriesInfo], output_path: str):
             })
 
 
-def create_symlinks(series_info: Dict[str, SeriesInfo], target_base_dir: str, 
+def create_symlinks(series_info: Dict[str, PlayList], target_base_dir: str, 
                    source_base_dir: str):
     """
     Create symbolic links organized by series.
@@ -115,7 +115,7 @@ def create_symlinks(series_info: Dict[str, SeriesInfo], target_base_dir: str,
                 print(f"Failed to create symlink for {rel_path}: {e}")
 
 
-def generate_playlist(series_info: Dict[str, SeriesInfo], base_dir: str, 
+def generate_playlist(series_info: Dict[str, PlayList], base_dir: str, 
                      output_dir: str):
     """
     Generate M3U playlist files for each series.
@@ -140,8 +140,8 @@ def generate_playlist(series_info: Dict[str, SeriesInfo], base_dir: str,
                 f.write(f"{full_path}\n")
 
 
-def filter_series_by_release_group(series_info: Dict[str, SeriesInfo], 
-                                  release_group: str) -> Dict[str, SeriesInfo]:
+def filter_series_by_release_group(series_info: Dict[str, PlayList], 
+                                  release_group: str) -> Dict[str, PlayList]:
     """
     Filter series by release group.
     
@@ -159,7 +159,7 @@ def filter_series_by_release_group(series_info: Dict[str, SeriesInfo],
     }
 
 
-def get_series_statistics(series_info: Dict[str, SeriesInfo]) -> Dict[str, Any]:
+def get_series_statistics(series_info: Dict[str, PlayList]) -> Dict[str, Any]:
     """
     Get statistics about the parsed series.
     

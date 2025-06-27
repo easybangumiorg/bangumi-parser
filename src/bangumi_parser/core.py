@@ -11,11 +11,11 @@ from typing import Dict, List, Tuple, Optional, Any
 from .config import BangumiConfig
 
 
-class SeriesInfo:
+class PlayList:
     """
     Data class to hold series information.
     
-    基础数据类，存储仿文件列表和相关元数据。
+    基础数据类，存储文件列表和相关元数据。
     """
 
     def __init__(self):
@@ -54,13 +54,13 @@ class BangumiInfo:
 
     def __init__(self):
         self.series_name: str = ""
-        self.seasons: Dict[int, SeriesInfo] = {}  # season_number -> SeriesInfo
+        self.seasons: Dict[int, PlayList] = {}  # season_number -> PlayList
         self.total_episodes: int = 0
         self.season_count: int = 0
         self.release_groups: List[str] = []  # All release groups found
         self.tags: List[str] = []  # All tags found
 
-    def add_season(self, season_info: SeriesInfo):
+    def add_season(self, season_info: PlayList):
         """Add a season to this bangumi."""
         season_num = season_info.season or 1  # Default to season 1 if no season specified
 
@@ -129,7 +129,7 @@ class BangumiParser:
         self.video_files: List[str] = []
         self.series_groups: Dict[str,
                                  List[Tuple[int, str]]] = defaultdict(list)
-        self.series_info: Dict[str, SeriesInfo] = {}
+        self.series_info: Dict[str, PlayList] = {}
 
     def scan_directory(self, directory: str) -> List[str]:
         """
@@ -508,19 +508,19 @@ class BangumiParser:
 
         return dict(self.series_groups)
 
-    def analyze_series(self) -> Dict[str, SeriesInfo]:
+    def analyze_series(self) -> Dict[str, PlayList]:
         """
         Analyze grouped series to extract detailed information.
         
         分析分组的系列以提取详细信息。
 
         Returns:
-            Dictionary mapping series patterns to SeriesInfo objects
+            Dictionary mapping series patterns to PlayList objects
         """
         self.series_info = {}
 
         for pattern, videos in self.series_groups.items():
-            info = SeriesInfo()
+            info = PlayList()
             info.pattern = pattern
 
             # Take first file as sample
@@ -564,7 +564,7 @@ class BangumiParser:
 
         return self.series_info
 
-    def parse(self, directory: str) -> Dict[str, SeriesInfo]:
+    def parse(self, directory: str) -> Dict[str, PlayList]:
         """
         Complete parsing workflow: scan, group, and analyze.
         
@@ -574,7 +574,7 @@ class BangumiParser:
             directory: Directory to scan for videos
 
         Returns:
-            Dictionary mapping series patterns to SeriesInfo objects
+            Dictionary mapping series patterns to PlayList objects
         """
         self.scan_directory(directory)
         self.group_series()
@@ -618,7 +618,7 @@ class BangumiParser:
                 print(f"  ... and {len(info.episodes) - 3} more episodes")
             print("-" * 50)
 
-    def merge_same_season_series(self, series_info: Dict[str, SeriesInfo]) -> Dict[str, SeriesInfo]:
+    def merge_same_season_series(self, series_info: Dict[str, PlayList]) -> Dict[str, PlayList]:
         """
         Merge series that belong to the same series, directory, and season.
         
@@ -707,7 +707,7 @@ class BangumiParser:
 
         return merged_series
 
-    def merge_multi_season_series(self, series_info: Dict[str, SeriesInfo]) -> Dict[str, BangumiInfo]:
+    def merge_multi_season_series(self, series_info: Dict[str, PlayList]) -> Dict[str, BangumiInfo]:
         """
         Merge series with the same name but different seasons into BangumiInfo objects.
         Enhanced to extract base series name from season-specific names.
